@@ -7,7 +7,10 @@
  * Safe to run repeatedly. Without DATABASE_URL the app uses its in-memory demo
  * dataset instead, so this step is optional.
  */
-import "dotenv/config";
+import { config } from "dotenv";
+
+// Match Next.js: .env.local wins over .env.
+config({ path: [".env.local", ".env"], quiet: true });
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
@@ -20,7 +23,7 @@ if (!url) {
   process.exit(1);
 }
 
-const client = postgres(url, { max: 1, prepare: false });
+const client = postgres(url, { max: 1, prepare: false, onnotice: () => {} });
 const db = drizzle(client, { schema });
 
 async function promoteToHypertables() {
