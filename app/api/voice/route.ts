@@ -8,11 +8,25 @@ const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
 const bodySchema = z.object({ text: z.string().trim().min(1).max(900) });
 
+function browserFallbackResponse(reason: string, status = 503) {
+  return NextResponse.json(
+    {
+      fallback: "browser",
+      reason,
+      message:
+        reason === "paid_plan_required"
+          ? "ElevenLabs voice requires an active paid plan; using browser speech instead."
+          : "ElevenLabs voice is unavailable right now; using browser speech instead.",
+    },
+    { status },
+  );
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
     // The client falls back to the browser's own speech synthesis.
-    return NextResponse.json({ fallback: "browser" }, { status: 503 });
+    return browserFallbackResponse("missing_api_key");
   }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -40,8 +54,13 @@ export async function POST(request: Request) {
     );
 
     if (!response.ok || !response.body) {
-      console.warn("[gutguide] ElevenLabs returned", response.status);
-      return NextResponse.json({ fallback: "browser" }, { status: 503 });
+      const payload = await response.json().catch(() => null);
+      const reason =
+        payload?.detail?.code ??
+        payload?.error ??
+        (response.status === 402 ? "paid_plan_required" : "elevenlabs_unavailable");
+      console.warn("[gutguide] ElevenLabs returned", response.status, reason);
+      return browserFallbackResponse(reason, response.status === 402 ? 402 : 503);
     }
 
     return new Response(response.body, {
@@ -52,6 +71,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.warn("[gutguide] voice request failed:", error instanceof Error ? error.message : error);
-    return NextResponse.json({ fallback: "browser" }, { status: 503 });
+    return browserFallbackResponse("elevenlabs_unavailable");
   }
 }

@@ -2,6 +2,8 @@ import "server-only";
 import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
 import { guestData } from "@/lib/data/guest-store";
+import { DEMO_PROFILE } from "@/lib/data/demo-user";
+import { localUserById } from "@/lib/auth/session";
 import type { ActiveUser } from "@/lib/auth/session";
 import type { MealLog, SymptomLog, UserProfile } from "@/lib/types";
 
@@ -13,6 +15,42 @@ import type { MealLog, SymptomLog, UserProfile } from "@/lib/types";
  * Every caller goes through `ActiveUser`, so neither path can leak into the
  * other.
  */
+
+declare global {
+  var __gutguideLocalAccountData:
+    | Map<string, { profile: UserProfile; meals: MealLog[]; symptoms: SymptomLog[] }>
+    | undefined;
+}
+
+function localAccountData(): Map<string, { profile: UserProfile; meals: MealLog[]; symptoms: SymptomLog[] }> {
+  globalThis.__gutguideLocalAccountData ??= new Map();
+  return globalThis.__gutguideLocalAccountData;
+}
+
+function getLocalAccountState(userId: string): {
+  profile: UserProfile;
+  meals: MealLog[];
+  symptoms: SymptomLog[];
+} {
+  const store = localAccountData();
+  let existing = store.get(userId);
+
+  if (!existing) {
+    const localUser = localUserById(userId);
+    existing = {
+      profile: {
+        ...DEMO_PROFILE,
+        id: userId,
+        name: localUser?.name ?? DEMO_PROFILE.name,
+      },
+      meals: [],
+      symptoms: [],
+    };
+    store.set(userId, existing);
+  }
+
+  return existing;
+}
 
 function sinceDate(days: number): Date {
   return new Date(Date.now() - days * 86_400_000);
@@ -37,7 +75,10 @@ export async function getProfile(actor: ActiveUser): Promise<UserProfile> {
   if (actor.kind === "guest") return guestData(actor.id).profile;
 
   const db = getDb();
-  if (!db) throw new Error("Signed-in users require a database.");
+  if (!db) {
+    const state = getLocalAccountState(actor.id);
+    return state.profile;
+  }
 
   const [row] = await db.select().from(schema.users).where(eq(schema.users.id, actor.id)).limit(1);
   if (!row) throw new Error("That account no longer exists.");
@@ -65,7 +106,11 @@ export async function getMeals(actor: ActiveUser, days = 120): Promise<MealLog[]
   }
 
   const db = getDb();
-  if (!db) return [];
+  if (!db) {
+    return getLocalAccountState(actor.id)
+      .meals.filter((m) => new Date(m.loggedAt).getTime() >= cutoff)
+      .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
+  }
 
   try {
     const rows = await db
@@ -102,7 +147,11 @@ export async function getSymptoms(actor: ActiveUser, days = 120): Promise<Sympto
   }
 
   const db = getDb();
-  if (!db) return [];
+  if (!db) {
+    return getLocalAccountState(actor.id)
+      .symptoms.filter((s) => new Date(s.loggedAt).getTime() >= cutoff)
+      .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
+  }
 
   try {
     const rows = await db
@@ -156,7 +205,10 @@ export async function addMeal(actor: ActiveUser, input: MealInput): Promise<Meal
   }
 
   const db = getDb();
-  if (!db) throw new Error("Signed-in users require a database.");
+  if (!db) {
+    getLocalAccountState(actor.id).meals.unshift(meal);
+    return meal;
+  }
 
   await db.insert(schema.mealLogs).values({
     id: meal.id,
@@ -192,7 +244,10 @@ export async function addSymptom(actor: ActiveUser, input: SymptomInput): Promis
   }
 
   const db = getDb();
-  if (!db) throw new Error("Signed-in users require a database.");
+  if (!db) {
+    getLocalAccountState(actor.id).symptoms.unshift(entry);
+    return entry;
+  }
 
   await db.insert(schema.symptomLogs).values({
     id: entry.id,
@@ -221,7 +276,11 @@ export async function updateProfile(
   }
 
   const db = getDb();
-  if (!db) throw new Error("Signed-in users require a database.");
+  if (!db) {
+    const state = getLocalAccountState(actor.id);
+    state.profile = next;
+    return next;
+  }
 
   await db
     .update(schema.users)

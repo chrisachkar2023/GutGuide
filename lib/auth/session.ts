@@ -4,11 +4,102 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { and, eq, gt, lt } from "drizzle-orm";
 import { getDb, schema } from "@/lib/db";
+import { hashPassword, verifyPassword } from "@/lib/auth/password";
+import { DEMO_PROFILE } from "@/lib/data/demo-user";
 
 export const SESSION_COOKIE = "gg_session";
 export const GUEST_COOKIE = "gg_guest";
 
+declare global {
+  var __gutguideLocalUsers: Map<string, LocalUserRecord> | undefined;
+  var __gutguideLocalSessions: Map<string, string> | undefined;
+}
+
 const SESSION_DAYS = 30;
+
+type LocalUserRecord = {
+  id: string;
+  email: string;
+  name: string;
+  passwordHash: string;
+};
+
+function localUsers(): Map<string, LocalUserRecord> {
+  globalThis.__gutguideLocalUsers ??= new Map<string, LocalUserRecord>();
+  return globalThis.__gutguideLocalUsers;
+}
+
+function localSessions(): Map<string, string> {
+  globalThis.__gutguideLocalSessions ??= new Map<string, string>();
+  return globalThis.__gutguideLocalSessions;
+}
+
+export function localUserById(id: string): LocalUserRecord | undefined {
+  for (const user of localUsers().values()) {
+    if (user.id === id) return user;
+  }
+  return undefined;
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+export async function ensureDemoAccount(): Promise<void> {
+  const email = "demo@gutguide.app";
+  const map = localUsers();
+  if (map.has(email)) return;
+
+  map.set(email, {
+    id: DEMO_PROFILE.id,
+    email,
+    name: DEMO_PROFILE.name,
+    passwordHash: await hashPassword("gutguide123"),
+  });
+}
+
+export async function localCreateAccount({
+  email,
+  password,
+  name,
+}: {
+  email: string;
+  password: string;
+  name: string;
+}): Promise<string | null> {
+  const normalized = normalizeEmail(email);
+  const map = localUsers();
+  if (map.has(normalized)) return null;
+
+  const userId = `local-${randomBytes(12).toString("base64url")}`;
+  map.set(normalized, {
+    id: userId,
+    email: normalized,
+    name: name.trim(),
+    passwordHash: await hashPassword(password),
+  });
+
+  return userId;
+}
+
+export async function localAuthenticate(
+  email: string,
+  password: string,
+): Promise<{ id: string; email: string; name: string } | null> {
+  await ensureDemoAccount();
+  const user = localUsers().get(normalizeEmail(email));
+  if (!user) return null;
+
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) return null;
+
+  return { id: user.id, email: user.email, name: user.name };
+}
+
+export function resetLocalAuth(): void {
+  globalThis.__gutguideLocalUsers = new Map<string, LocalUserRecord>();
+  globalThis.__gutguideLocalSessions = new Map<string, string>();
+}
 
 /**
  * Who the current request belongs to.
@@ -34,16 +125,23 @@ function cookieOptions(maxAge: number) {
   };
 }
 
-/** Accounts need a database. Without one the app runs guest-only. */
+/** Local auth is always available so users can sign in or create an account in demo mode. */
 export function accountsEnabled(): boolean {
-  return getDb() !== null;
+  return true;
 }
 
 export async function createSession(userId: string): Promise<void> {
   const db = getDb();
-  if (!db) throw new Error("Cannot create a session without a database.");
-
   const token = randomBytes(32).toString("base64url");
+  const store = await cookies();
+
+  if (!db) {
+    localSessions().set(token, userId);
+    store.set(SESSION_COOKIE, token, cookieOptions(SESSION_DAYS * 86_400));
+    store.delete(GUEST_COOKIE);
+    return;
+  }
+
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 86_400_000);
 
   await db.insert(schema.sessions).values({ tokenHash: hashToken(token), userId, expiresAt });
@@ -51,7 +149,6 @@ export async function createSession(userId: string): Promise<void> {
   // Opportunistic cleanup, cheap enough to do inline.
   await db.delete(schema.sessions).where(lt(schema.sessions.expiresAt, new Date())).catch(() => {});
 
-  const store = await cookies();
   store.set(SESSION_COOKIE, token, cookieOptions(SESSION_DAYS * 86_400));
   store.delete(GUEST_COOKIE);
 }
@@ -67,6 +164,8 @@ export async function destroySession(): Promise<void> {
         .delete(schema.sessions)
         .where(eq(schema.sessions.tokenHash, hashToken(token)))
         .catch(() => {});
+    } else {
+      localSessions().delete(token);
     }
   }
 
@@ -113,6 +212,14 @@ export const getActiveUser = cache(async (): Promise<ActiveUser | null> => {
           "[gutguide] session lookup failed:",
           error instanceof Error ? error.message : error,
         );
+      }
+    }
+
+    const localUserId = localSessions().get(token);
+    if (localUserId) {
+      const localUser = localUserById(localUserId);
+      if (localUser) {
+        return { kind: "user", id: localUser.id, email: localUser.email, name: localUser.name };
       }
     }
   }

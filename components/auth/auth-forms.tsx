@@ -4,9 +4,12 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { CircleAlert, Loader2 } from "lucide-react";
-import { AUTH_IDLE, guestAction, signInAction, signUpAction } from "@/app/auth/actions";
+import type { AuthState } from "@/app/auth/actions";
+import { guestAction, signInAction, signUpAction } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const AUTH_IDLE: AuthState = { error: null };
 
 const FIELD =
   "h-11 w-full rounded-xl bg-cream-100 px-4 text-[0.95rem] text-ink outline-none ring-1 ring-inset " +
@@ -90,16 +93,16 @@ export function SignUpForm({ accountsEnabled }: { accountsEnabled: boolean }) {
     <form action={action} className="space-y-4">
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-ink">
-          What should we call you?
+          Full name
         </label>
         <input
           id="name"
           name="name"
           type="text"
-          autoComplete="given-name"
+          autoComplete="name"
           required
           disabled={!accountsEnabled}
-          placeholder="Riley"
+          placeholder="Full name"
           className={cn(FIELD, !accountsEnabled && "opacity-60")}
         />
       </div>
@@ -147,9 +150,7 @@ export function SignUpForm({ accountsEnabled }: { accountsEnabled: boolean }) {
           className="mt-0.5 h-4 w-4 rounded border-black/20 accent-moss-600"
         />
         <span className="text-sm text-ink-soft">
-          <span className="font-medium text-ink">Start with sample history.</span> Fills your account
-          with 120 days of example meals and check-ins so every screen has something to show. You can
-          log over it straight away.
+          Add sample history
         </span>
       </label>
 

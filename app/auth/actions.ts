@@ -9,6 +9,8 @@ import {
   createSession,
   destroySession,
   getActiveUser,
+  localAuthenticate,
+  localCreateAccount,
   startGuestSession,
 } from "@/lib/auth/session";
 import { checkPasswordStrength, hashPassword, verifyPassword } from "@/lib/auth/password";
@@ -18,7 +20,7 @@ import { getDb, schema } from "@/lib/db";
 
 export type AuthState = { error: string | null };
 
-export const AUTH_IDLE: AuthState = { error: null };
+const AUTH_IDLE: AuthState = { error: null };
 
 const credentials = z.object({
   email: z.string().trim().toLowerCase().email("That does not look like an email address."),
@@ -31,10 +33,6 @@ const signUpSchema = credentials.extend({
 });
 
 export async function signUpAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  if (!accountsEnabled()) {
-    return { error: "Accounts need a database. Set DATABASE_URL, or continue as a guest." };
-  }
-
   const parsed = signUpSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -48,35 +46,56 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   if (weak) return { error: weak };
 
   const db = getDb();
-  if (!db) return { error: "The database is unavailable right now." };
-
-  const [existing] = await db
-    .select({ id: schema.users.id })
-    .from(schema.users)
-    .where(eq(schema.users.email, parsed.data.email))
-    .limit(1);
-
-  if (existing) return { error: "There is already an account with that email." };
-
-  const userId = `user-${randomBytes(9).toString("base64url")}`;
 
   try {
-    await db.insert(schema.users).values({
-      id: userId,
+    if (db) {
+      const [existing] = await db
+        .select({ id: schema.users.id })
+        .from(schema.users)
+        .where(eq(schema.users.email, parsed.data.email))
+        .limit(1);
+
+      if (existing) return { error: "There is already an account with that email." };
+
+      const userId = `user-${randomBytes(9).toString("base64url")}`;
+      await db.insert(schema.users).values({
+        id: userId,
+        email: parsed.data.email,
+        passwordHash: await hashPassword(parsed.data.password),
+        name: parsed.data.name,
+        diagnosedYear: new Date().getFullYear(),
+        phase: "remission",
+        restrictions: [],
+        watchTraits: [],
+        favoriteCuisines: [],
+        dislikes: [],
+        goal: "",
+      });
+
+      if (parsed.data.sampleData) await seedSampleHistory(userId);
+      await createSession(userId);
+      redirect("/");
+      return AUTH_IDLE;
+    }
+
+    const existingLocal = await localAuthenticate(parsed.data.email, parsed.data.password);
+    if (existingLocal) {
+      return { error: "There is already an account with that email." };
+    }
+
+    const userId = await localCreateAccount({
       email: parsed.data.email,
-      passwordHash: await hashPassword(parsed.data.password),
+      password: parsed.data.password,
       name: parsed.data.name,
-      diagnosedYear: new Date().getFullYear(),
-      phase: "remission",
-      restrictions: [],
-      watchTraits: [],
-      favoriteCuisines: [],
-      dislikes: [],
-      goal: "",
     });
 
-    if (parsed.data.sampleData) await seedSampleHistory(userId);
+    if (!userId) {
+      return { error: "There is already an account with that email." };
+    }
+
     await createSession(userId);
+    redirect("/");
+    return AUTH_IDLE;
   } catch (error) {
     console.error("[gutguide] sign up failed:", error);
     return { error: "We could not create that account. Try again in a moment." };
@@ -86,10 +105,6 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
 }
 
 export async function signInAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
-  if (!accountsEnabled()) {
-    return { error: "Accounts need a database. Set DATABASE_URL, or continue as a guest." };
-  }
-
   const parsed = credentials.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -98,27 +113,34 @@ export async function signInAction(_prev: AuthState, formData: FormData): Promis
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Check those details." };
 
   const db = getDb();
-  if (!db) return { error: "The database is unavailable right now." };
 
   try {
-    const [user] = await db
-      .select({ id: schema.users.id, passwordHash: schema.users.passwordHash })
-      .from(schema.users)
-      .where(eq(schema.users.email, parsed.data.email))
-      .limit(1);
+    if (db) {
+      const [user] = await db
+        .select({ id: schema.users.id, passwordHash: schema.users.passwordHash })
+        .from(schema.users)
+        .where(eq(schema.users.email, parsed.data.email))
+        .limit(1);
 
-    // Identical message either way, so this cannot be used to enumerate accounts.
-    const wrong = { error: "That email and password do not match." };
-    if (!user) return wrong;
-    if (!(await verifyPassword(parsed.data.password, user.passwordHash))) return wrong;
+      const wrong = { error: "That email and password do not match." };
+      if (!user) return wrong;
+      if (!(await verifyPassword(parsed.data.password, user.passwordHash))) return wrong;
 
-    await createSession(user.id);
+      await createSession(user.id);
+      redirect("/");
+      return AUTH_IDLE;
+    }
+
+    const localUser = await localAuthenticate(parsed.data.email, parsed.data.password);
+    if (!localUser) return { error: "That email and password do not match." };
+
+    await createSession(localUser.id);
+    redirect("/");
+    return AUTH_IDLE;
   } catch (error) {
     console.error("[gutguide] sign in failed:", error);
     return { error: "We could not sign you in. Try again in a moment." };
   }
-
-  redirect("/");
 }
 
 export async function guestAction(): Promise<void> {

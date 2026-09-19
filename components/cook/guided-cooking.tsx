@@ -48,6 +48,7 @@ export function GuidedCooking({
   const [voiceOn, setVoiceOn] = useState(true);
   const [speaking, setSpeaking] = useState(false);
   const [voiceSource, setVoiceSource] = useState<"elevenlabs" | "browser" | null>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -87,11 +88,19 @@ export function GuidedCooking({
           audio.onended = () => setSpeaking(false);
           audio.onerror = () => setSpeaking(false);
           setVoiceSource("elevenlabs");
+          setVoiceNotice(null);
           await audio.play();
           return;
         }
+
+        const payload = await response.json().catch(() => null);
+        if (payload?.reason === "paid_plan_required") {
+          setVoiceNotice("ElevenLabs voice requires an active paid plan. Using browser speech instead.");
+        } else if (payload?.reason) {
+          setVoiceNotice("ElevenLabs voice is unavailable right now. Using browser speech instead.");
+        }
       } catch {
-        // Fall through to the browser voice below.
+        setVoiceNotice("Voice is unavailable right now. Using browser speech instead.");
       }
 
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -165,6 +174,9 @@ export function GuidedCooking({
               <> · {voiceSource === "elevenlabs" ? "ElevenLabs voice" : "browser voice"}</>
             )}
           </p>
+          {voiceNotice && (
+            <p className="mt-1 text-[11px] text-amber-700">{voiceNotice}</p>
+          )}
         </div>
         <button
           type="button"
