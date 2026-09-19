@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { BottomNav, TopNav } from "@/components/layout/app-nav";
+import { GuestBanner } from "@/components/layout/guest-banner";
+import { getActiveUser } from "@/lib/auth/session";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -32,7 +35,11 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Signed out, the only reachable pages are sign in and sign up, which carry
+  // their own layout — so the app chrome stays off.
+  const actor = await getActiveUser();
+
   return (
     <html lang="en" className={`${outfit.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full">
@@ -42,11 +49,26 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <TopNav />
-        <main id="main" className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 lg:pb-16">
+        {actor && (
+          <>
+            {actor.kind === "guest" && <GuestBanner />}
+            <TopNav
+              accountName={actor.kind === "user" ? actor.name : "Guest"}
+              accountEmail={actor.kind === "user" ? actor.email : undefined}
+              isGuest={actor.kind === "guest"}
+            />
+          </>
+        )}
+        <main
+          id="main"
+          className={cn(
+            "mx-auto w-full max-w-6xl px-4 sm:px-6",
+            actor ? "pb-28 pt-6 lg:pb-16" : "py-6",
+          )}
+        >
           {children}
         </main>
-        <BottomNav />
+        {actor && <BottomNav />}
       </body>
     </html>
   );

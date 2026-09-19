@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getActiveUser } from "@/lib/auth/session";
 import { getFoods } from "@/lib/data/foods";
 import { addMeal, addSymptom } from "@/lib/data/repository";
 
@@ -36,6 +37,9 @@ function refreshViews() {
 }
 
 export async function logMealAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await getActiveUser();
+  if (!actor) return { status: "error", message: "Your session expired. Sign in again to keep logging." };
+
   const parsed = mealSchema.safeParse({
     name: (formData.get("name") as string) || undefined,
     foodIds: formData.getAll("foodIds").map(String),
@@ -59,7 +63,7 @@ export async function logMealAction(_prev: ActionState, formData: FormData): Pro
       ? foods[0].name
       : `${foods.slice(0, -1).map((f) => f.name).join(", ")} + ${foods[foods.length - 1].name}`;
 
-  await addMeal({
+  await addMeal(actor, {
     name: parsed.data.name?.trim() || fallbackName,
     foodIds: foods.map((f) => f.id),
     portion: parsed.data.portion,
@@ -73,6 +77,9 @@ export async function logMealAction(_prev: ActionState, formData: FormData): Pro
 }
 
 export async function logSymptomAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const actor = await getActiveUser();
+  if (!actor) return { status: "error", message: "Your session expired. Sign in again to keep logging." };
+
   const num = (key: string) => Number(formData.get(key) ?? 0);
   const parsed = symptomSchema.safeParse({
     pain: num("pain"),
@@ -86,7 +93,7 @@ export async function logSymptomAction(_prev: ActionState, formData: FormData): 
     return { status: "error", message: "Those values did not look right." };
   }
 
-  await addSymptom(parsed.data);
+  await addSymptom(actor, parsed.data);
   refreshViews();
   return { status: "success", message: "Check-in saved. Thanks for keeping it up." };
 }
