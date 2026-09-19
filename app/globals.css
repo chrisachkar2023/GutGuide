@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+@theme {
+  /* Warm, calm palette — approachable health app, not clinical dashboard */
+  --color-cream-50: #fdfbf7;
+  --color-cream-100: #f8f3ea;
+  --color-cream-200: #efe7d9;
+  --color-cream-300: #e2d6c3;
+
+  --color-moss-50: #eef7f3;
+  --color-moss-100: #d6ece2;
+  --color-moss-200: #aed9c7;
+  --color-moss-300: #7cc0a6;
+  --color-moss-400: #4ea184;
+  --color-moss-500: #2f8468;
+  --color-moss-600: #226a53;
+  --color-moss-700: #1b5342;
+  --color-moss-800: #143f33;
+  --color-moss-900: #0e2b23;
+
+  --color-clay-50: #fdf3ee;
+  --color-clay-100: #fbe3d7;
+  --color-clay-200: #f5c3ab;
+  --color-clay-300: #ec9c78;
+  --color-clay-400: #e07a50;
+  --color-clay-500: #cc5f36;
+  --color-clay-600: #a84a29;
+
+  --color-amber-soft: #e9a93a;
+  --color-ink: #1d1a17;
+  --color-ink-soft: #5b544c;
+  --color-ink-faint: #8b8279;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+
+  --radius-xl2: 1.25rem;
+
+  --animate-rise: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade: fade 0.4s ease both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+:root {
+  --background: var(--color-cream-50);
+  --foreground: var(--color-ink);
+  --surface: #ffffff;
+  --border-subtle: rgba(29, 26, 23, 0.08);
+}
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background:
+      radial-gradient(1100px 520px at 12% -12%, var(--color-moss-50) 0%, transparent 62%),
+      radial-gradient(900px 460px at 92% 4%, var(--color-clay-50) 0%, transparent 58%),
+      var(--background);
+    background-attachment: fixed;
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv01";
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-moss-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-moss-200);
+  }
+}
+
+@layer utilities {
+  .surface {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 1px 2px rgba(29, 26, 23, 0.04), 0 8px 24px -16px rgba(29, 26, 23, 0.22);
+  }
+
+  .stagger > * {
+    animation: var(--animate-rise);
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
