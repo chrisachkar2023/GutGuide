@@ -22,20 +22,21 @@ type MemoryStore = {
 };
 
 declare global {
-  var __gutguideStore: MemoryStore | undefined;
+  var __gutguideStore: Record<string, MemoryStore> | undefined;
 }
 
-function memory(): MemoryStore {
-  if (!globalThis.__gutguideStore) {
+function memory(userId = DEMO_USER_ID): MemoryStore {
+  const map = (globalThis.__gutguideStore ??= {});
+  if (!map[userId]) {
     const { meals, symptoms } = demoHistory();
-    globalThis.__gutguideStore = {
-      profile: { ...DEMO_PROFILE },
-      meals: [...meals],
-      symptoms: [...symptoms],
+    map[userId] = {
+      profile: { ...DEMO_PROFILE, id: userId, name: userId === DEMO_USER_ID ? DEMO_PROFILE.name : "Guest" },
+      meals: meals.filter((meal) => meal.userId === userId || userId === DEMO_USER_ID),
+      symptoms: symptoms.filter((symptom) => symptom.userId === userId || userId === DEMO_USER_ID),
       seededAt: new Date().toISOString(),
     };
   }
-  return globalThis.__gutguideStore;
+  return map[userId];
 }
 
 function sinceDate(days: number): Date {
@@ -72,7 +73,7 @@ export async function getProfile(userId = DEMO_USER_ID): Promise<UserProfile> {
       warnOnce("getProfile", error);
     }
   }
-  return memory().profile;
+  return memory(userId).profile;
 }
 
 export async function getMeals(days = 120, userId = DEMO_USER_ID): Promise<MealLog[]> {
@@ -101,7 +102,7 @@ export async function getMeals(days = 120, userId = DEMO_USER_ID): Promise<MealL
     }
   }
   const cutoff = sinceDate(days).getTime();
-  return memory()
+  return memory(userId)
     .meals.filter((m) => new Date(m.loggedAt).getTime() >= cutoff)
     .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
 }
@@ -132,7 +133,7 @@ export async function getSymptoms(days = 120, userId = DEMO_USER_ID): Promise<Sy
     }
   }
   const cutoff = sinceDate(days).getTime();
-  return memory()
+  return memory(userId)
     .symptoms.filter((s) => new Date(s.loggedAt).getTime() >= cutoff)
     .sort((a, b) => b.loggedAt.localeCompare(a.loggedAt));
 }
@@ -177,7 +178,7 @@ export async function addMeal(input: MealInput): Promise<MealLog> {
     }
   }
 
-  memory().meals.unshift(meal);
+  memory(meal.userId).meals.unshift(meal);
   return meal;
 }
 
@@ -217,7 +218,7 @@ export async function addSymptom(input: SymptomInput): Promise<SymptomLog> {
     }
   }
 
-  memory().symptoms.unshift(entry);
+  memory(entry.userId).symptoms.unshift(entry);
   return entry;
 }
 
@@ -246,7 +247,7 @@ export async function updateProfile(patch: Partial<UserProfile>, userId = DEMO_U
     }
   }
 
-  memory().profile = next;
+  memory(userId).profile = next;
   return next;
 }
 

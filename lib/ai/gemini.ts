@@ -1,4 +1,5 @@
 import "server-only";
+import "dotenv/config";
 import { GoogleGenAI, Type } from "@google/genai";
 
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";

@@ -54,7 +54,12 @@ export function SearchClient({ items, initialQuery = "" }: { items: SearchItem[]
       if (category !== "all" && item.category !== category) return false;
       if (onlyLogged && item.loggedTimes === 0) return false;
       if (terms.length === 0) return true;
-      return terms.every((term) => item.keywords.includes(term));
+      return terms.every((term) => {
+        const safeTerm = term.toLowerCase();
+        if (item.name.toLowerCase().includes(safeTerm)) return true;
+        if (item.summary.toLowerCase().includes(safeTerm)) return true;
+        return item.keywords.split(/\s+/).includes(safeTerm) || item.keywords.includes(safeTerm);
+      });
     });
 
     // With a query, relevance wins unless the user picked an explicit sort.

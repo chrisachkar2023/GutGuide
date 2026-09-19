@@ -21,10 +21,28 @@ export default async function SearchPage({
   const { q } = await searchParams;
   const ctx = await getUserContext();
 
+  const ingredientTokens = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .split(/\s+/)
+      .filter((token) => token.length > 1 && !["and", "with", "the", "for"].includes(token));
+
   // Scores are computed once on the server so filtering and sorting stay instant.
   const items: SearchItem[] = FOODS.map((food) => {
     const compat = scoreFood(food, ctx);
     const history = ctx.insight.foodHistory.get(food.id);
+    const keywordTerms = [
+      food.name,
+      food.category,
+      food.summary,
+      ...food.ingredients,
+      ...(food.aliases ?? []),
+      ...food.traits.map((t) => TRAITS[t]?.label ?? t),
+    ]
+      .flatMap((term) => ingredientTokens(term))
+      .filter((token, index, arr) => arr.indexOf(token) === index);
+
     return {
       id: food.id,
       slug: food.slug,
@@ -33,16 +51,7 @@ export default async function SearchPage({
       category: food.category,
       summary: food.summary,
       traits: food.traits,
-      keywords: [
-        food.name,
-        food.category,
-        food.summary,
-        ...food.ingredients,
-        ...(food.aliases ?? []),
-        ...food.traits.map((t) => TRAITS[t]?.label ?? t),
-      ]
-        .join(" ")
-        .toLowerCase(),
+      keywords: keywordTerms.join(" "),
       score: compat.score,
       band: compat.band,
       loggedTimes: history?.timesLogged ?? 0,

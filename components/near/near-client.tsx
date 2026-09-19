@@ -67,6 +67,7 @@ export function NearClient({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationLabel, setLocationLabel] = useState(defaultCenterLabel);
 
   const cuisines = useMemo(
     () => ["all", ...[...new Set(places.map((p) => p.cuisine))].sort()],
@@ -94,14 +95,17 @@ export function NearClient({
     setLocationError(null);
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        const nextCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setCoords(nextCoords);
+        setLocationLabel("your current location");
         setLocating(false);
       },
       () => {
         setLocationError("Location was not shared, so distances stay relative to the demo area.");
+        setLocationLabel(defaultCenterLabel);
         setLocating(false);
       },
-      { timeout: 8000, maximumAge: 300_000 },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300_000 },
     );
   }
 
@@ -112,7 +116,7 @@ export function NearClient({
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-sm text-ink-soft">
               <MapPin className="h-4 w-4 text-moss-600" aria-hidden />
-              {coords ? "Distances from where you are now" : `Distances from ${defaultCenterLabel}`}
+              {coords ? "Distances from your current location" : `Distances from ${locationLabel}`}
             </span>
             {!coords && (
               <Button size="sm" variant="secondary" onClick={requestLocation} disabled={locating}>
@@ -122,6 +126,9 @@ export function NearClient({
             )}
           </div>
           {locationError && <p className="text-sm text-ink-faint">{locationError}</p>}
+          {coords && !locationError && (
+            <p className="text-sm text-ink-faint">Live distances are now relative to your current location.</p>
+          )}
 
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {cuisines.map((c) => (
