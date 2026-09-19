@@ -15,7 +15,11 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import { DEMO_PROFILE, DEMO_USER_ID, demoHistory } from "../lib/data/demo-user";
+import { hashPassword } from "../lib/auth/password";
 import * as schema from "../lib/db/schema";
+
+const DEMO_EMAIL = process.env.DEMO_EMAIL ?? "demo@gutguide.app";
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "gutguide123";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -53,6 +57,8 @@ async function seed() {
     .insert(schema.users)
     .values({
       id: DEMO_PROFILE.id,
+      email: DEMO_EMAIL,
+      passwordHash: await hashPassword(DEMO_PASSWORD),
       name: DEMO_PROFILE.name,
       diagnosedYear: DEMO_PROFILE.diagnosedYear,
       phase: DEMO_PROFILE.phase,
@@ -62,7 +68,10 @@ async function seed() {
       dislikes: DEMO_PROFILE.dislikes,
       goal: DEMO_PROFILE.goal,
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: schema.users.id,
+      set: { email: DEMO_EMAIL, passwordHash: await hashPassword(DEMO_PASSWORD) },
+    });
 
   await client`DELETE FROM meal_logs WHERE user_id = ${DEMO_USER_ID}`;
   await client`DELETE FROM symptom_logs WHERE user_id = ${DEMO_USER_ID}`;
@@ -105,6 +114,7 @@ async function seed() {
   }
 
   console.log(`· seeded ${meals.length} meals and ${symptoms.length} symptom check-ins`);
+  console.log(`· demo account: ${DEMO_EMAIL} / ${DEMO_PASSWORD}`);
 }
 
 async function main() {

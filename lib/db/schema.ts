@@ -12,6 +12,9 @@ import type { DietaryRestriction, Phase, Portion, TraitId } from "@/lib/types";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  /** scrypt:<salt>:<derived key>, never a raw password. */
+  passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   diagnosedYear: integer("diagnosed_year").notNull(),
   phase: text("phase").$type<Phase>().notNull().default("remission"),
@@ -65,6 +68,24 @@ export const symptomLogs = pgTable(
   ],
 );
 
+/**
+ * Sessions store a SHA-256 of the cookie token, so a database leak does not
+ * hand over live sessions.
+ */
+export const sessions = pgTable(
+  "sessions",
+  {
+    tokenHash: text("token_hash").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
 export type UserRow = typeof users.$inferSelect;
+export type SessionRow = typeof sessions.$inferSelect;
 export type MealLogRow = typeof mealLogs.$inferSelect;
 export type SymptomLogRow = typeof symptomLogs.$inferSelect;
