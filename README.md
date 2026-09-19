@@ -1,4 +1,4 @@
-# GutGuide :)
+# GutGuide
 
 **Crohn's is personal, so food guidance should be personal too.**
 
