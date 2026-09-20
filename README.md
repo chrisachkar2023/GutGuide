@@ -82,7 +82,7 @@ npm run build
 
 ## Tech Stack
 
-**Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · PostgreSQL · Drizzle ORM · TimescaleDB / Tiger Data · Gemini API · ElevenLabs · Recharts · Vercel**
+**Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 · PostgreSQL / Tiger Data · Gemini API · ElevenLabs · DigitalOcean**
 
 ---
 
