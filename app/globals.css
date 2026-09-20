@@ -50,10 +50,10 @@
 }
 
 :root {
-  --background: var(--color-cream-50);
+  --background: #f6f2eb;
   --foreground: var(--color-ink);
-  --surface: #ffffff;
-  --border-subtle: rgba(29, 26, 23, 0.08);
+  --surface: #fffdf9;
+  --border-subtle: rgba(29, 26, 23, 0.09);
 }
 
 @layer base {
@@ -67,8 +67,7 @@
 
   body {
     background:
-      radial-gradient(1100px 520px at 12% -12%, var(--color-moss-50) 0%, transparent 62%),
-      radial-gradient(900px 460px at 92% 4%, var(--color-clay-50) 0%, transparent 58%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(246, 242, 235, 0.98)),
       var(--background);
     background-attachment: fixed;
     color: var(--foreground);
@@ -97,7 +96,7 @@
   .surface {
     background: var(--surface);
     border: 1px solid var(--border-subtle);
-    box-shadow: 0 1px 2px rgba(29, 26, 23, 0.04), 0 8px 24px -16px rgba(29, 26, 23, 0.22);
+    box-shadow: 0 1px 0 rgba(29, 26, 23, 0.03), 0 6px 14px -12px rgba(29, 26, 23, 0.22);
   }
 
   .stagger > * {
