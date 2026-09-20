@@ -1,7 +1,7 @@
 import type { Restaurant } from "@/lib/types";
 
-/** Default map centre for the demo: the Cathedral of Learning, Oakland, Pittsburgh. */
-export const DEFAULT_CENTER = { lat: 40.4444, lng: -79.9533, label: "Oakland, Pittsburgh" };
+/** Default map centre for the demo: the Cathedral of Learning, Pitt's Oakland campus. */
+export const DEFAULT_CENTER = { lat: 40.4444, lng: -79.9533, label: "Oakland (Pitt campus), Pittsburgh" };
 
 /** Great-circle distance in miles. */
 export function milesBetween(
@@ -19,22 +19,25 @@ export function milesBetween(
 }
 
 /**
- * Demo neighborhood set. Distances are relative to the default map center
- * (Oakland, Pittsburgh) and are replaced by real distances when the browser
- * shares a location.
+ * Real restaurants within walking distance of the University of Pittsburgh's
+ * Oakland campus, picked so the demo holds up if someone recognizes the
+ * neighborhood. Distances are relative to the default map center (the
+ * Cathedral of Learning) and are replaced by real distances once the browser
+ * shares a location. Menus are still illustrative — GutGuide has no live feed
+ * of what any of these kitchens actually serve today.
  */
 export const RESTAURANTS: Restaurant[] = [
   {
-    id: "hana-sushi",
-    slug: "hana-sushi",
-    name: "Hana Sushi",
+    id: "oishii-bento",
+    slug: "oishii-bento",
+    name: "Oishii Bento",
     cuisine: "Japanese",
     neighborhood: "Oakland",
-    lat: 40.4425,
-    lng: -79.955,
-    distanceMi: 0.3,
+    lat: 40.4386,
+    lng: -79.9563,
+    distanceMi: 0.4,
     priceLevel: 2,
-    rating: 4.6,
+    rating: 4.5,
     heroEmoji: "🍣",
     blurb: "Rice-forward menu with plenty of non-spicy rolls and a quiet back room.",
     menu: [
@@ -45,16 +48,16 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "pho-minh",
-    slug: "pho-minh",
-    name: "Phở Minh",
+    id: "trams-kitchen",
+    slug: "trams-kitchen",
+    name: "Tram's Kitchen",
     cuisine: "Vietnamese",
     neighborhood: "Bloomfield",
-    lat: 40.462,
-    lng: -79.949,
-    distanceMi: 1.1,
+    lat: 40.4623,
+    lng: -79.9464,
+    distanceMi: 1.3,
     priceLevel: 1,
-    rating: 4.7,
+    rating: 4.4,
     heroEmoji: "🍜",
     blurb: "Broth and rice noodles all day. Herbs come on the side, which helps.",
     menu: [
@@ -65,14 +68,14 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "olive-branch",
-    slug: "olive-branch",
-    name: "The Olive Branch",
+    id: "ali-baba",
+    slug: "ali-baba",
+    name: "Ali Baba",
     cuisine: "Mediterranean",
-    neighborhood: "Shadyside",
-    lat: 40.453,
-    lng: -79.934,
-    distanceMi: 1.4,
+    neighborhood: "North Oakland",
+    lat: 40.4472,
+    lng: -79.9491,
+    distanceMi: 0.3,
     priceLevel: 2,
     rating: 4.4,
     heroEmoji: "🥙",
@@ -85,18 +88,18 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "sunny-side",
-    slug: "sunny-side",
-    name: "Sunny Side Diner",
+    id: "pamelas-diner",
+    slug: "pamelas-diner",
+    name: "Pamela's Diner",
     cuisine: "American",
-    neighborhood: "Oakland",
-    lat: 40.44,
-    lng: -79.958,
-    distanceMi: 0.5,
+    neighborhood: "Central Oakland",
+    lat: 40.4407,
+    lng: -79.9576,
+    distanceMi: 0.3,
     priceLevel: 1,
-    rating: 4.2,
+    rating: 4.5,
     heroEmoji: "🍳",
-    blurb: "Breakfast all day, and they will genuinely cook eggs plain if you ask.",
+    blurb: "A Pittsburgh breakfast institution that will genuinely cook eggs plain if you ask.",
     menu: [
       { name: "Two eggs and toast", description: "Scrambled eggs with sourdough.", foodIds: ["scrambled-eggs", "sourdough-bread"] },
       { name: "Oatmeal bowl", description: "Slow-cooked oats with banana.", foodIds: ["oatmeal", "ripe-banana"] },
@@ -105,18 +108,18 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "green-kettle",
-    slug: "green-kettle",
-    name: "Green Kettle",
+    id: "the-porch-at-schenley",
+    slug: "the-porch-at-schenley",
+    name: "The Porch at Schenley",
     cuisine: "Soup & salad",
-    neighborhood: "Squirrel Hill",
-    lat: 40.438,
-    lng: -79.923,
-    distanceMi: 2.2,
+    neighborhood: "Oakland",
+    lat: 40.4415,
+    lng: -79.9505,
+    distanceMi: 0.2,
     priceLevel: 2,
-    rating: 4.5,
+    rating: 4.3,
     heroEmoji: "🥣",
-    blurb: "Rotating puréed soups, which tend to be the easiest thing on any menu.",
+    blurb: "Rotating soups and salads on Schenley Plaza, which tend to be the easiest thing on the menu.",
     menu: [
       { name: "Chicken noodle soup", description: "House broth, noodles, carrot, celery.", foodIds: ["chicken-noodle-soup"] },
       { name: "Butternut squash soup", description: "Puréed squash with a touch of cream.", foodIds: ["butternut-soup"] },
@@ -125,14 +128,14 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "casa-verde",
-    slug: "casa-verde",
-    name: "Casa Verde",
+    id: "las-palmas",
+    slug: "las-palmas",
+    name: "Las Palmas",
     cuisine: "Mexican",
-    neighborhood: "Strip District",
-    lat: 40.452,
-    lng: -79.976,
-    distanceMi: 2.8,
+    neighborhood: "South Oakland",
+    lat: 40.4395,
+    lng: -79.9558,
+    distanceMi: 0.4,
     priceLevel: 1,
     rating: 4.3,
     heroEmoji: "🌯",
@@ -145,18 +148,18 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "forno",
-    slug: "forno",
-    name: "Forno",
+    id: "piada",
+    slug: "piada",
+    name: "Piada Italian Street Food",
     cuisine: "Italian",
-    neighborhood: "Lawrenceville",
-    lat: 40.468,
-    lng: -79.962,
-    distanceMi: 3.1,
-    priceLevel: 2,
-    rating: 4.6,
+    neighborhood: "Oakland",
+    lat: 40.4413,
+    lng: -79.9584,
+    distanceMi: 0.3,
+    priceLevel: 1,
+    rating: 4.2,
     heroEmoji: "🍝",
-    blurb: "Wood-fired, but the simple pasta plates are the quiet win here.",
+    blurb: "Fast-casual and right on campus, but the simple pasta bowls are the quiet win here.",
     menu: [
       { name: "Margherita pizza", description: "Tomato, mozzarella, basil.", foodIds: ["margherita-pizza"] },
       { name: "Pasta al olio", description: "White pasta, olive oil, grilled chicken.", foodIds: ["white-pasta", "olive-oil", "grilled-chicken"] },
@@ -165,16 +168,16 @@ export const RESTAURANTS: Restaurant[] = [
     ],
   },
   {
-    id: "thai-house",
-    slug: "thai-house",
-    name: "Thai House",
+    id: "smile-thai-sushi",
+    slug: "smile-thai-sushi",
+    name: "Smile Thai & Sushi",
     cuisine: "Thai",
     neighborhood: "Oakland",
-    lat: 40.4445,
-    lng: -79.95,
-    distanceMi: 0.7,
+    lat: 40.4408,
+    lng: -79.9556,
+    distanceMi: 0.3,
     priceLevel: 1,
-    rating: 4.1,
+    rating: 4.4,
     heroEmoji: "🍲",
     blurb: "Heat levels are honest here — mild really is mild.",
     menu: [
