@@ -45,8 +45,8 @@ export default async function CookPage() {
             <Mic className="h-6 w-6" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-semibold">Guided cooking reads every step out loud</p>
-            <p className="mt-1 text-sm leading-relaxed text-white/80">
+            <p className="font-display text-lg font-semibold text-black">Guided cooking reads every step out loud</p>
+            <p className="mt-1 text-sm leading-relaxed text-black/80">
               Built-in timers, big type, and arrow-key navigation. Voiced by ElevenLabs when a key is
               configured, and by your browser when it is not.
             </p>
